@@ -47,4 +47,8 @@ t_stat imp_receive_packet (IMP *, void *octets, int n);
 /* Signal host ready. */
 t_stat imp_host_ready (IMP *, int);
 
+#ifdef  __cplusplus
+}
+#endif
+
 #endif /* SIM_IMP_H */
