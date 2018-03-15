@@ -37,7 +37,7 @@ static t_stat imp_svc (UNIT *);
 
 UNIT imp_unit[1] = {{ UDATA (imp_svc, 0, 0)}};
 
-static DEVICE imp = {
+static DEVICE imp_dev = {
     "IMP", imp_unit, NULL, NULL, 
     0, 0, 0, 0, 0, 0, 
     NULL, NULL, NULL, NULL, NULL, NULL, 
@@ -46,12 +46,13 @@ static DEVICE imp = {
 
 static int ready;
 
-t_stat imp_reset (void)
+t_stat imp_reset (IMP *imp)
 {
-  //fprintf (stderr, "IMP: reset\r\n");
+  memset (imp, 0, sizeof (IMP));
   ready = 1;
-  sim_register_internal_device (&imp);
-  ncp_reset ();
+  sim_register_internal_device (&imp_dev);
+  imp_unit[0].up7 = imp;
+  ncp_reset (imp);
   return SCPE_OK;
 }
 
@@ -96,13 +97,11 @@ t_stat imp_send_packet (IMP *imp, void *packet, int n)
 
 int bit;
 int bits = 0;
-uint8 *octets_to_host;
 
 /* Send a complete packet to the host. */
 t_stat imp_receive_packet (IMP *imp, void *packet, int n)
 {
   int i;
-  uint8 *octets = packet;
 
   if (!ready)
     return SCPE_UDIS;
@@ -111,7 +110,7 @@ t_stat imp_receive_packet (IMP *imp, void *packet, int n)
   //print_packet (stderr, octets, n);
   //fprintf (stderr, "\r\n");
 
-  octets_to_host = octets;
+  memcpy (imp->packet_to_host, packet, n/8);
   ready = 0;
   bits = n;
   bit = 0;
@@ -121,13 +120,12 @@ t_stat imp_receive_packet (IMP *imp, void *packet, int n)
   return SCPE_OK;
 }
 
-extern int kaimp_receive_bit (int, int);
-
 static t_stat imp_svc (UNIT *uptr)
 {
+  IMP *imp = uptr->up7;
   if (bits > 0) {
-    if (kaimp_receive_bit ((octets_to_host[bit >> 3] >> (7-(bit&7))) & 1,
-                           bits == 1)) {
+    if (imp->receive_bit ((imp->packet_to_host[bit >> 3] >> (7-(bit&7))) & 1,
+                          bits == 1) == SCPE_OK) {
       bit++;
       bits--;
       ready = (bits == 0);

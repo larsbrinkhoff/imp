@@ -45,9 +45,10 @@ static DEVICE ncp = {
     NULL, DEV_DEBUG | DEV_NOSAVE, 0, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL};
 
-int init_state = 0;
-int padding = 0;
-int tun = -1;
+static IMP *imp;
+static int init_state = 0;
+static int padding = 0;
+static int tun = -1;
 
 static t_stat process_ip (uint8 *packet)
 {
@@ -107,7 +108,7 @@ static void send_nop (void)
   packet[6] = local_imp_id >> 8;
   packet[7] = local_imp_id & 0xFF;
 
-  if (imp_receive_packet (0, &packet, 96) == SCPE_OK)
+  if (imp_receive_packet (imp, &packet, 96) == SCPE_OK)
     init_state++;
 }
 
@@ -117,7 +118,7 @@ static void send_rfnm (void)
   packet[0] = 0x0F; // new format
   packet[3] = 5; // Ready for next message
 
-  if (imp_receive_packet (0, &packet, 96) == SCPE_OK)
+  if (imp_receive_packet (imp, &packet, 96) == SCPE_OK)
     init_state++;
 }
 
@@ -127,7 +128,7 @@ static void send_reset (void)
   packet[0] = 0x0F; // new format
   packet[3] = 10; // Interface reset
 
-  if (imp_receive_packet (0, &packet, 96) == SCPE_OK)
+  if (imp_receive_packet (imp, &packet, 96) == SCPE_OK)
     init_state++;
 }
 
@@ -183,7 +184,7 @@ static t_stat send_ip (void *payload, int n)
 
   memcpy (packet + 12 + padding/8 + 20, payload, n);
 
-  return imp_receive_packet (0, &packet, 96 + padding + 5*32 + 8*n);
+  return imp_receive_packet (imp, &packet, 96 + padding + 5*32 + 8*n);
 }
 
 t_stat ncp_process (uint8 *packet)
@@ -213,7 +214,7 @@ t_stat ncp_process (uint8 *packet)
       padding = packet[9] & 0xF;
       if (init_state < 3)
         init_state++;
-      fprintf (stderr, "NCP: Nop.  padding=%d\r\n", padding);
+      //fprintf (stderr, "NCP: Nop.  padding=%d\r\n", padding);
       padding *= 16;
       break;
     case 8:
@@ -227,11 +228,12 @@ t_stat ncp_process (uint8 *packet)
     return SCPE_OK;
 }
 
-t_stat ncp_reset (void)
+t_stat ncp_reset (IMP *i)
 {
   char ifname[100];
   //fprintf (stderr, "NCP: reset\r\n");
 
+  imp = i;
   init_state = 0;
   sim_register_internal_device (&ncp);
   sim_activate (ncp_unit, 10000);
@@ -269,7 +271,7 @@ static void process_buffer (void)
 
   memcpy (message + 12 + padding/8, buffer, octets);
 
-  if (imp_receive_packet (0, message, 96 + padding + 8*octets) == SCPE_OK)
+  if (imp_receive_packet (imp, message, 96 + padding + 8*octets) == SCPE_OK)
     octets = 0;
 }
 

@@ -10,12 +10,13 @@
 #define SIM_NCP_H
 
 #include "sim_defs.h"
+#include "sim_imp.h"
 
 #ifdef  __cplusplus
 extern "C" {
 #endif
 
-t_stat ncp_reset (void);
+t_stat ncp_reset (IMP *);
 t_stat ncp_process (uint8 *packet);
 
 #ifdef  __cplusplus

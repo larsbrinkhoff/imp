@@ -18,8 +18,8 @@ extern "C" {
 typedef unsigned long long int uint64;
 
 struct imp_device {
-/*t_stat (*receive_bits) (uint64, int, int);
-  t_stat (*receive_packet) (uint64, int);
+  t_stat (*receive_bit) (int, int);
+/*t_stat (*receive_packet) (uint64, int);
   t_stat (*imp_ready) (void);*/
 
   int imp_error;
@@ -33,7 +33,7 @@ struct imp_device {
 
 typedef struct imp_device IMP;
 
-t_stat imp_reset (void);
+t_stat imp_reset (IMP *);
 
 /* Send bits from host to IMP. */
 t_stat imp_send_bits (IMP *, uint64 bits, int n, int last);

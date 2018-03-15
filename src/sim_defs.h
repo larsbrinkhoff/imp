@@ -12,6 +12,7 @@ typedef unsigned char uint8;
 typedef unsigned char uint32;
 
 typedef struct {
+  void *up7;
 } UNIT;
 #define UDATA(x,y,z)
 
